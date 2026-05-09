@@ -3,7 +3,8 @@ import {
   Direction,
   TileVariant,
   delta,
-  hasRoad,
+  getEdge,
+  isEdgeAllGrass,
   opposite,
 } from './tile';
 
@@ -12,7 +13,7 @@ export interface WfcOptions {
   readonly cols: number;
   /** Optional integer seed for reproducible output. */
   readonly seed?: number;
-  /** When true, no road may exit the outer edges of the grid. */
+  /** When true, the outer edges of the grid must consist entirely of grass cells. */
   readonly sealedBoundary?: boolean;
   /** How many full restarts to allow on contradiction. Default 200. */
   readonly maxAttempts?: number;
@@ -40,21 +41,30 @@ function makeRng(seed: number | undefined): () => number {
   };
 }
 
+function edgesEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 /**
  * Builds the adjacency table.
  *
  * `compat[variantId][direction]` = the set of variant ids that may legally
- * sit in the neighbour cell located in `direction` from this variant.
+ * sit in the neighbour cell located in `direction` from this variant. Two
+ * variants are compatible iff their touching edge profiles match cell-by-cell.
  */
 function buildCompatibility(palette: readonly TileVariant[]): ReadonlySet<number>[][] {
   const compat: Set<number>[][] = [];
   for (let i = 0; i < palette.length; i++) {
     compat.push([new Set(), new Set(), new Set(), new Set()]);
     for (const dir of ALL_DIRECTIONS) {
+      const myEdge = getEdge(palette[i], dir);
       const opp = opposite(dir);
-      const needsRoad = hasRoad(palette[i], dir);
       for (let j = 0; j < palette.length; j++) {
-        if (hasRoad(palette[j], opp) === needsRoad) {
+        if (edgesEqual(myEdge, getEdge(palette[j], opp))) {
           compat[i][dir].add(j);
         }
       }
@@ -68,7 +78,8 @@ function buildCompatibility(palette: readonly TileVariant[]): ReadonlySet<number
  *
  * Per attempt:
  *   1. Reset every cell to the full possibility set.
- *   2. Optionally trim variants whose road exits would leave a sealed boundary.
+ *   2. Optionally trim variants whose edges contain non-grass cells on a
+ *      sealed boundary.
  *   3. Loop: pick the lowest-entropy cell, weighted-random collapse it,
  *      then BFS-propagate the consequences to neighbours.
  *   4. On contradiction (empty cell), restart the whole attempt.
@@ -141,10 +152,10 @@ function applyBoundaryConstraints(
       for (const id of [...cell]) {
         const v = palette[id];
         if (
-          (r === 0 && hasRoad(v, Direction.North)) ||
-          (r === rows - 1 && hasRoad(v, Direction.South)) ||
-          (c === 0 && hasRoad(v, Direction.West)) ||
-          (c === cols - 1 && hasRoad(v, Direction.East))
+          (r === 0 && !isEdgeAllGrass(v, Direction.North)) ||
+          (r === rows - 1 && !isEdgeAllGrass(v, Direction.South)) ||
+          (c === 0 && !isEdgeAllGrass(v, Direction.West)) ||
+          (c === cols - 1 && !isEdgeAllGrass(v, Direction.East))
         ) {
           cell.delete(id);
         }

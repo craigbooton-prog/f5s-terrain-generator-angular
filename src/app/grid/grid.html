@@ -4,55 +4,39 @@
   [attr.width]="width()"
   [attr.height]="height()"
   preserveAspectRatio="xMidYMid meet"
+  shape-rendering="crispEdges"
 >
-  @for (p of placements(); track p.r + '-' + p.c) {
-    <g [attr.transform]="'translate(' + (p.c * cellSize()) + ' ' + (p.r * cellSize()) + ')'">
-      <rect class="grass" x="0" y="0" [attr.width]="cellSize()" [attr.height]="cellSize()" />
+  @for (p of placements(); track p.key) {
+    <rect
+      [attr.x]="p.x"
+      [attr.y]="p.y"
+      [attr.width]="cellPixels()"
+      [attr.height]="cellPixels()"
+      [attr.class]="terrainClass(p.terrain)"
+    />
+  }
 
-      @if (p.tile) {
-        @if (p.hasN) {
-          <rect
-            class="road"
-            [attr.x]="roadOffset()"
-            y="0"
-            [attr.width]="roadWidth()"
-            [attr.height]="half()"
-          />
-        }
-        @if (p.hasS) {
-          <rect
-            class="road"
-            [attr.x]="roadOffset()"
-            [attr.y]="half()"
-            [attr.width]="roadWidth()"
-            [attr.height]="half()"
-          />
-        }
-        @if (p.hasE) {
-          <rect
-            class="road"
-            [attr.x]="half()"
-            [attr.y]="roadOffset()"
-            [attr.width]="half()"
-            [attr.height]="roadWidth()"
-          />
-        }
-        @if (p.hasW) {
-          <rect
-            class="road"
-            x="0"
-            [attr.y]="roadOffset()"
-            [attr.width]="half()"
-            [attr.height]="roadWidth()"
-          />
-        }
-      } @else {
-        <rect
-          class="failed"
-          x="0"
-          y="0"
-          [attr.width]="cellSize()"
-          [attr.height]="cellSize()"
+  @if (showCellLines()) {
+    <g class="celllines">
+      @for (l of cellLines(); track l.key) {
+        <line
+          [attr.x1]="l.x1"
+          [attr.y1]="l.y1"
+          [attr.x2]="l.x2"
+          [attr.y2]="l.y2"
+        />
+      }
+    </g>
+  }
+
+  @if (showGridLines()) {
+    <g class="gridlines">
+      @for (l of gridLines(); track l.key) {
+        <line
+          [attr.x1]="l.x1"
+          [attr.y1]="l.y1"
+          [attr.x2]="l.x2"
+          [attr.y2]="l.y2"
         />
       }
     </g>

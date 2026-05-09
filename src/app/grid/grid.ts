@@ -1,14 +1,12 @@
 import { Component, computed, input } from '@angular/core';
-import { Direction, TileVariant, hasRoad } from '../wfc/tile';
+import { TILE_SIZE, TileVariant } from '../wfc/tile';
 
 interface CellPlacement {
-  readonly r: number;
-  readonly c: number;
-  readonly tile: TileVariant | null;
-  readonly hasN: boolean;
-  readonly hasE: boolean;
-  readonly hasS: boolean;
-  readonly hasW: boolean;
+  /** Pixel-space x of the cell's top-left corner (in the SVG coordinate system). */
+  readonly x: number;
+  readonly y: number;
+  readonly terrain: string;
+  readonly key: string;
 }
 
 @Component({
@@ -18,38 +16,121 @@ interface CellPlacement {
   styleUrl: './grid.scss',
 })
 export class GridComponent {
+  /** rows × cols 2-D array of `TileVariant | null`. */
   readonly grid = input.required<readonly (TileVariant | null)[][]>();
-  readonly cellSize = input<number>(64);
+  /** On-screen pixel size of a whole tile (default 96 px). */
+  readonly tilePixels = input<number>(96);
+  /** Show lines along every tile (row/column) boundary. */
+  readonly showGridLines = input<boolean>(true);
+  /** Show lines along every inner cell boundary (the 12×12 sub-grid). */
+  readonly showCellLines = input<boolean>(false);
 
   protected readonly cols = computed(() => this.grid()[0]?.length ?? 0);
   protected readonly rows = computed(() => this.grid().length);
-  protected readonly width = computed(() => this.cols() * this.cellSize());
-  protected readonly height = computed(() => this.rows() * this.cellSize());
+  protected readonly width = computed(() => this.cols() * this.tilePixels());
+  protected readonly height = computed(() => this.rows() * this.tilePixels());
 
-  /** Half-cell length in pixels (used for road segments from edge to centre). */
-  protected readonly half = computed(() => this.cellSize() * 0.5);
-  /** Width of the road strip = 30% of the cell. */
-  protected readonly roadWidth = computed(() => this.cellSize() * 0.3);
-  /** Offset from the cell edge to the road strip ((cell - road) / 2). */
-  protected readonly roadOffset = computed(() => this.cellSize() * 0.35);
+  /** Pixel size of a single inner cell of a tile. */
+  protected readonly cellPixels = computed(() => this.tilePixels() / TILE_SIZE);
 
+  /**
+   * Flat list of every cell across every tile in the grid. Pre-computed so
+   * the template stays trivial and Angular's `@for ... track` can identify
+   * cells by a stable string key.
+   */
   protected readonly placements = computed<readonly CellPlacement[]>(() => {
     const grid = this.grid();
-    const out: CellPlacement[] = [];
+    const tilePx = this.tilePixels();
+    const cellPx = this.cellPixels();
+    const placements: CellPlacement[] = [];
+
     for (let r = 0; r < grid.length; r++) {
       for (let c = 0; c < grid[r].length; c++) {
         const tile = grid[r][c];
-        out.push({
-          r,
-          c,
-          tile,
-          hasN: tile ? hasRoad(tile, Direction.North) : false,
-          hasE: tile ? hasRoad(tile, Direction.East) : false,
-          hasS: tile ? hasRoad(tile, Direction.South) : false,
-          hasW: tile ? hasRoad(tile, Direction.West) : false,
-        });
+        const baseX = c * tilePx;
+        const baseY = r * tilePx;
+
+        if (!tile) {
+          placements.push({
+            x: baseX,
+            y: baseY,
+            terrain: 'failed',
+            key: `${r}-${c}-failed`,
+          });
+          continue;
+        }
+
+        for (let cellR = 0; cellR < TILE_SIZE; cellR++) {
+          for (let cellC = 0; cellC < TILE_SIZE; cellC++) {
+            placements.push({
+              x: baseX + cellC * cellPx,
+              y: baseY + cellR * cellPx,
+              terrain: tile.cells[cellR][cellC],
+              key: `${r}-${c}-${cellR}-${cellC}`,
+            });
+          }
+        }
       }
     }
-    return out;
+
+    return placements;
   });
+
+  /**
+   * Lines that mark the tile-scale grid (one line per row/column boundary,
+   * including the outer borders). Drawn on top of the cell rects so they
+   * stay visible even where roads carry the same colour across tiles.
+   */
+  protected readonly gridLines = computed(() => {
+    const rows = this.rows();
+    const cols = this.cols();
+    const tilePx = this.tilePixels();
+    const w = this.width();
+    const h = this.height();
+    const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
+
+    for (let i = 0; i <= cols; i++) {
+      const x = i * tilePx;
+      lines.push({ x1: x, y1: 0, x2: x, y2: h, key: `v-${i}` });
+    }
+    for (let j = 0; j <= rows; j++) {
+      const y = j * tilePx;
+      lines.push({ x1: 0, y1: y, x2: w, y2: y, key: `h-${j}` });
+    }
+    return lines;
+  });
+
+  /**
+   * Lines that mark the inner cell-scale grid (one line per cell boundary
+   * inside a tile, i.e. the TILE_SIZE × TILE_SIZE sub-grid). Positions that
+   * coincide with tile boundaries are skipped so the two sets of gridlines
+   * don't fight each other for pixels.
+   */
+  protected readonly cellLines = computed(() => {
+    const rows = this.rows();
+    const cols = this.cols();
+    const cellPx = this.cellPixels();
+    const w = this.width();
+    const h = this.height();
+    const lines: { x1: number; y1: number; x2: number; y2: number; key: string }[] = [];
+
+    const totalCols = cols * TILE_SIZE;
+    const totalRows = rows * TILE_SIZE;
+
+    for (let i = 1; i < totalCols; i++) {
+      if (i % TILE_SIZE === 0) continue;
+      const x = i * cellPx;
+      lines.push({ x1: x, y1: 0, x2: x, y2: h, key: `cv-${i}` });
+    }
+    for (let j = 1; j < totalRows; j++) {
+      if (j % TILE_SIZE === 0) continue;
+      const y = j * cellPx;
+      lines.push({ x1: 0, y1: y, x2: w, y2: y, key: `ch-${j}` });
+    }
+    return lines;
+  });
+
+  protected terrainClass(terrain: string): string {
+    return `terrain terrain-${terrain}`;
+  }
 }

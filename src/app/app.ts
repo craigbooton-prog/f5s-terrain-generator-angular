@@ -16,10 +16,12 @@ export class App {
 
   protected readonly rows = signal(5);
   protected readonly cols = signal(5);
-  protected readonly cellSize = signal(72);
+  protected readonly tilePixels = signal(96);
   protected readonly sealedBoundary = signal(false);
   protected readonly useSeed = signal(true);
   protected readonly seed = signal(42);
+  protected readonly showGridLines = signal(true);
+  protected readonly showCellLines = signal(false);
 
   protected readonly result = signal<WfcResult>(this.runGenerator());
   protected readonly grid = computed(() => this.result().grid);

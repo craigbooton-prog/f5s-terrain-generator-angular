@@ -9,19 +9,26 @@ algorithm shape.
 ## What you see
 
 - A live SVG grid that re-renders whenever you change a control.
-- Tiles drawn as grass-coloured cells with grey road strips emerging from
-  whichever cardinal sides have a road exit. Adjacent tiles automatically
-  line up because that's exactly what the WFC adjacency rule enforces.
-- Five tile archetypes — Empty, Straight, Corner, T-junction, Crossroad —
-  expanded into all of their unique rotations, giving a 12-tile palette.
+- Each tile is itself a **12×12 sub-grid of `Terrain` cells** (currently
+  `grass` and `road`, but the type is open for extension). The 5 archetypes
+  — Empty, Straight, Corner, T-junction, Crossroad — are auto-painted into
+  this 12×12 form by laying down a centred 4-cell-wide road strip toward
+  whichever sides have a road exit. Each archetype contributes its unique
+  rotations, giving a 12-tile palette.
+- A tile's "side" is the 12-cell edge of its grid. Two tiles are
+  adjacency-compatible iff the 12 edge cells match cell-by-cell with the
+  neighbouring tile's matching edge — this is what makes roads line up
+  across cell boundaries automatically.
 
 ## Controls
 
 | Control            | Effect                                                    |
 |--------------------|-----------------------------------------------------------|
 | Rows / Columns     | Grid dimensions                                            |
-| Cell size          | Pixel size of each tile in the rendered SVG                |
-| Sealed boundary    | When on, no road may exit the outer edge of the grid       |
+| Tile size          | Pixel size of each whole tile in the rendered SVG          |
+| Sealed boundary    | When on, the outer edges of the grid are forced all-grass  |
+| Grid lines         | Draw lines at every tile (row/column) boundary             |
+| Cell lines (12×12) | Draw lines at every inner cell boundary inside each tile   |
 | Use seed + Seed    | Lock RNG to a deterministic seed for reproducible layouts  |
 | Generate           | Re-run WFC with the current settings                       |
 | Random seed        | Pick a fresh seed and regenerate                           |
@@ -41,10 +48,21 @@ Standard Wave Function Collapse with weighted random selection:
 
 The implementation lives in [`src/app/wfc/`](src/app/wfc):
 
-- `tile.ts` — types, palette, rotation logic.
-- `wfc.ts` — `generate(palette, options)` returns a `WfcResult`.
-- `wfc.spec.ts` — Vitest suite covering palette shape, determinism,
-  edge-socket consistency, and sealed-boundary behaviour.
+- `tile.ts` — `Terrain` palette, `TILE_SIZE`/`ROAD_WIDTH` constants,
+  archetype painter, rotation, edge extraction, default tile-set builder.
+- `wfc.ts` — `generate(palette, options)` returns a `WfcResult`. Adjacency
+  is plain cell-by-cell equality of the touching 12-cell edges.
+- `wfc.spec.ts` — Vitest suite covering palette shape, tile dimensions,
+  determinism, edge-by-edge adjacency, and sealed-boundary behaviour.
+
+### Adding a new terrain
+
+1. Add an entry to `Terrain` in `src/app/wfc/tile.ts`
+   (e.g. `Sidewalk: 'sidewalk'`).
+2. Add a matching `.terrain-sidewalk { fill: ... }` rule in
+   `src/app/grid/grid.scss`.
+3. Use the new value when authoring tile cells. The WFC algorithm doesn't
+   need any changes — adjacency is just string equality on edge cells.
 
 ## Project layout
 

@@ -8,17 +8,52 @@
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   background: #6db365;
+  // SVG cells line up perfectly, but a 1-px hairline sometimes shows in
+  // antialiased rendering. crispEdges + this border hide it cleanly.
+  overflow: hidden;
 }
 
-.grass {
+.terrain {
+  // Cells are positioned absolutely via x/y attributes; no fill animations.
+  // Each terrain class supplies its own fill colour.
+}
+
+.terrain-grass {
   fill: #6db365;
 }
 
-.road {
+.terrain-road {
   fill: #2b2b2b;
 }
 
-.failed {
+// Reserved for future expansions of the Terrain palette:
+// .terrain-sidewalk { fill: #c4c0b8; }
+// .terrain-water    { fill: #4aa3df; }
+// .terrain-building { fill: #8a7a6b; }
+
+.terrain-failed {
   fill: #d33;
   opacity: 0.4;
+}
+
+.gridlines line {
+  // Bright off-white lines stay readable on both the dark road and the green
+  // grass. `non-scaling-stroke` keeps them at 1.5 device-px regardless of the
+  // SVG's viewBox scale.
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 1.5;
+  shape-rendering: crispEdges;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.celllines line {
+  // Inner 12×12 cell boundaries: thinner, more transparent, so they don't
+  // overpower the tile-level grid. Drawn beneath .gridlines so tile lines
+  // stay visually dominant.
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }

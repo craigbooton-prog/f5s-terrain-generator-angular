@@ -28,13 +28,14 @@
     </label>
 
     <label>
-      <span>Cell size ({{ cellSize() }}px)</span>
+      <span>Tile size ({{ tilePixels() }}px)</span>
       <input
         type="range"
-        min="20"
-        max="120"
-        [ngModel]="cellSize()"
-        (ngModelChange)="cellSize.set(+$event)"
+        min="36"
+        max="180"
+        step="12"
+        [ngModel]="tilePixels()"
+        (ngModelChange)="tilePixels.set(+$event)"
       />
     </label>
 
@@ -45,6 +46,24 @@
         (ngModelChange)="sealedBoundary.set($event)"
       />
       <span>Sealed boundary</span>
+    </label>
+
+    <label class="checkbox">
+      <input
+        type="checkbox"
+        [ngModel]="showGridLines()"
+        (ngModelChange)="showGridLines.set($event)"
+      />
+      <span>Grid lines</span>
+    </label>
+
+    <label class="checkbox">
+      <input
+        type="checkbox"
+        [ngModel]="showCellLines()"
+        (ngModelChange)="showCellLines.set($event)"
+      />
+      <span>Cell lines (12×12)</span>
     </label>
 
     <label class="checkbox">
@@ -76,7 +95,12 @@
 
   <section class="result">
     @if (result().success) {
-      <wfc-grid [grid]="grid()" [cellSize]="cellSize()" />
+      <wfc-grid
+        [grid]="grid()"
+        [tilePixels]="tilePixels()"
+        [showGridLines]="showGridLines()"
+        [showCellLines]="showCellLines()"
+      />
     } @else {
       <div class="error">
         WFC failed to converge after {{ result().attempts }} attempts. Try
