@@ -26,10 +26,27 @@
   fill: #2b2b2b;
 }
 
-// Reserved for future expansions of the Terrain palette:
-// .terrain-sidewalk { fill: #c4c0b8; }
-// .terrain-water    { fill: #4aa3df; }
-// .terrain-building { fill: #8a7a6b; }
+// Reserved palette — defined now so archetypes can use these ids without
+// any further wiring. Colours pick a recognisable urban-stone identity:
+//   - flagstone:          warm light-grey paving slab
+//   - kerbstone:          cooler, paler concrete kerb
+//   - cracked-flagstone:  weathered, darker version of flagstone
+//   - manhole:            cast-iron lid, slightly cooler than asphalt
+.terrain-flagstone {
+  fill: #9a9285;
+}
+
+.terrain-kerbstone {
+  fill: #bcb8b0;
+}
+
+.terrain-cracked-flagstone {
+  fill: #7d756a;
+}
+
+.terrain-manhole {
+  fill: #1d1d1d;
+}
 
 .terrain-failed {
   fill: #d33;

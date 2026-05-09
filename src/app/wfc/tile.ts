@@ -26,13 +26,26 @@ export const ROAD_WIDTH = 4;
 export const ROAD_OFFSET = Math.floor((TILE_SIZE - ROAD_WIDTH) / 2);
 
 /**
- * Built-in terrain ids. Extend by adding more keys (e.g. `Sidewalk: 'sidewalk'`)
- * and a matching `.terrain-<id>` rule in `grid.scss`. Terrain values are plain
- * strings, so user code can introduce custom ids without touching this file.
+ * Built-in terrain ids.
+ *
+ * Only `Grass` and `Road` are referenced by the default tile archetypes, so
+ * those are the only values the WFC generator currently produces. The other
+ * ids exist as a reserved palette that hand-authored archetypes can pull
+ * from when we add them later. Adding a new id here also requires a matching
+ * `.terrain-<id>` CSS rule in `grid.scss` so the renderer knows what colour
+ * to fill the cell with.
+ *
+ * Terrain values are plain strings, so user code can introduce custom ids
+ * without touching this file at all if needed.
  */
 export const Terrain = {
   Grass: 'grass',
   Road: 'road',
+  // Reserved for future archetypes — not yet emitted by the default palette.
+  Flagstone: 'flagstone',
+  Kerbstone: 'kerbstone',
+  CrackedFlagstone: 'cracked-flagstone',
+  Manhole: 'manhole',
 } as const;
 
 export type TerrainId = string;

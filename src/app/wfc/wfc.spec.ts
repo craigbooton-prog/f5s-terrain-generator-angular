@@ -13,6 +13,35 @@ import {
 } from './tile';
 import { generate } from './wfc';
 
+describe('Terrain registry', () => {
+  it('exposes the built-in palette plus reserved urban-stone ids', () => {
+    expect(Terrain.Grass).toBe('grass');
+    expect(Terrain.Road).toBe('road');
+    expect(Terrain.Flagstone).toBe('flagstone');
+    expect(Terrain.Kerbstone).toBe('kerbstone');
+    expect(Terrain.CrackedFlagstone).toBe('cracked-flagstone');
+    expect(Terrain.Manhole).toBe('manhole');
+  });
+
+  it('default WFC archetypes only emit Grass and Road, never the reserved ids', () => {
+    const palette = buildDefaultTileSet();
+    const reserved = new Set<string>([
+      Terrain.Flagstone,
+      Terrain.Kerbstone,
+      Terrain.CrackedFlagstone,
+      Terrain.Manhole,
+    ]);
+    for (const v of palette) {
+      for (const row of v.cells) {
+        for (const t of row) {
+          expect(reserved.has(t)).toBe(false);
+          expect([Terrain.Grass, Terrain.Road]).toContain(t);
+        }
+      }
+    }
+  });
+});
+
 describe('tile palette', () => {
   it('has 12 unique variants (1+2+4+4+1)', () => {
     const palette = buildDefaultTileSet();

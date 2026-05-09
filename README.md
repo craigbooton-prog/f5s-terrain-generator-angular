@@ -9,16 +9,32 @@ algorithm shape.
 ## What you see
 
 - A live SVG grid that re-renders whenever you change a control.
-- Each tile is itself a **12×12 sub-grid of `Terrain` cells** (currently
-  `grass` and `road`, but the type is open for extension). The 5 archetypes
-  — Empty, Straight, Corner, T-junction, Crossroad — are auto-painted into
-  this 12×12 form by laying down a centred 4-cell-wide road strip toward
-  whichever sides have a road exit. Each archetype contributes its unique
-  rotations, giving a 12-tile palette.
+- Each tile is itself a **12×12 sub-grid of `Terrain` cells**. The five
+  archetypes — Empty, Straight, Corner, T-junction, Crossroad — are
+  auto-painted into this 12×12 form by laying down a centred 4-cell-wide
+  road strip toward whichever sides have a road exit. Each archetype
+  contributes its unique rotations, giving a 12-tile palette.
 - A tile's "side" is the 12-cell edge of its grid. Two tiles are
   adjacency-compatible iff the 12 edge cells match cell-by-cell with the
   neighbouring tile's matching edge — this is what makes roads line up
   across cell boundaries automatically.
+
+### Terrain palette
+
+The `Terrain` registry in `src/app/wfc/tile.ts` ships with:
+
+| Id                  | Used by default archetypes? | Intended look                     |
+|---------------------|-----------------------------|-----------------------------------|
+| `grass`             | yes                         | green background                  |
+| `road`              | yes                         | dark asphalt                      |
+| `flagstone`         | reserved                    | warm light-grey paving slab       |
+| `kerbstone`         | reserved                    | cool pale concrete kerb           |
+| `cracked-flagstone` | reserved                    | weathered, darker flagstone       |
+| `manhole`           | reserved                    | cast-iron lid, cooler than road   |
+
+The reserved ids exist as ready-to-use values for hand-authored archetypes
+we haven't built yet. The current WFC palette only emits `grass` and
+`road`, and there's a Vitest assertion that locks that behaviour in.
 
 ## Controls
 
@@ -57,8 +73,9 @@ The implementation lives in [`src/app/wfc/`](src/app/wfc):
 
 ### Adding a new terrain
 
-1. Add an entry to `Terrain` in `src/app/wfc/tile.ts`
-   (e.g. `Sidewalk: 'sidewalk'`).
+1. Add an entry to `Terrain` in `src/app/wfc/tile.ts` (e.g.
+   `Sidewalk: 'sidewalk'`). Use kebab-case for the id so it lands cleanly
+   in CSS class names.
 2. Add a matching `.terrain-sidewalk { fill: ... }` rule in
    `src/app/grid/grid.scss`.
 3. Use the new value when authoring tile cells. The WFC algorithm doesn't
