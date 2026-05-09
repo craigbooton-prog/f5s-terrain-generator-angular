@@ -14,10 +14,18 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('renders the page heading', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, f5s-terrain-generator-angular');
+    expect(compiled.querySelector('h1')?.textContent).toContain('F5 Terrain Generator');
+  });
+
+  it('renders an SVG grid by default', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('svg.wfc-grid')).toBeTruthy();
   });
 });
