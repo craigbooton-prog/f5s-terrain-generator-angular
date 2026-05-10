@@ -56,22 +56,27 @@ export class App {
   protected readonly grid = computed(() => this.result().grid);
 
   /**
-   * Flattens the current layout into a deduplicated list of variant +
-   * occurrence counts, sorted from most-used to least-used. Each entry
-   * also carries a stable 1×1 grid reference so the `<wfc-grid>` preview
-   * doesn't churn its `input.required` binding on every change-detection.
+   * Flattens the current layout into a list of one entry per archetype
+   * (TileType), summing across every rotation of that archetype, sorted
+   * from most-used to least-used. The preview shows the lowest-id
+   * variant of each archetype (the canonical 0° rotation when it
+   * survives dedup). Each entry also carries a stable 1×1 grid
+   * reference so the `<wfc-grid>` preview doesn't churn its
+   * `input.required` binding on every change-detection.
    */
   protected readonly tileUsage = computed<readonly UsageEntry[]>(() => {
     const grid = this.grid();
-    const counts = new Map<number, { tile: TileVariant; count: number }>();
+    const counts = new Map<TileType, { tile: TileVariant; count: number }>();
     for (const row of grid) {
       for (const cell of row) {
         if (!cell) continue;
-        const existing = counts.get(cell.id);
+        const existing = counts.get(cell.type);
         if (existing) {
           existing.count++;
+          // Keep the canonical (lowest-id) variant as the entry's preview.
+          if (cell.id < existing.tile.id) existing.tile = cell;
         } else {
-          counts.set(cell.id, { tile: cell, count: 1 });
+          counts.set(cell.type, { tile: cell, count: 1 });
         }
       }
     }
@@ -80,7 +85,7 @@ export class App {
         tile,
         count,
         previewGrid: [[tile]] as (TileVariant | null)[][],
-        label: `${formatType(tile.type)} ${tile.rotation * 90}°`,
+        label: formatType(tile.type),
       }))
       .sort((a, b) => b.count - a.count || a.tile.id - b.tile.id);
   });
