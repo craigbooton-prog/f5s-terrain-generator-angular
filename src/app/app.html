@@ -7,7 +7,7 @@
   <section class="controls">
     <label class="library">
       <span>Tile library</span>
-      <select [ngModel]="libraryId()" (ngModelChange)="libraryId.set($event); regenerate()">
+      <select [ngModel]="libraryId()" (ngModelChange)="selectLibrary($event)">
         @for (lib of libraries; track lib.id) {
           <option [value]="lib.id">{{ lib.name }}</option>
         }
@@ -95,11 +95,59 @@
     </label>
 
     <div class="actions">
-      <button type="button" (click)="regenerate()">Generate</button>
-      <button type="button" class="secondary" (click)="randomizeSeed()">
+      <button
+        type="button"
+        [disabled]="selectedArchetypes().size === 0"
+        (click)="regenerate()"
+      >
+        Generate
+      </button>
+      <button
+        type="button"
+        class="secondary"
+        [disabled]="selectedArchetypes().size === 0"
+        (click)="randomizeSeed()"
+      >
         Random seed
       </button>
     </div>
+  </section>
+
+  <section class="tile-picker">
+    <h2>
+      Tiles in {{ library().name }}
+      <span class="count-badge">
+        {{ selectedArchetypes().size }} / {{ archetypes().length }} selected
+      </span>
+    </h2>
+    <p class="hint">Click a tile to include or exclude it from generation.</p>
+    <ul class="picker-list">
+      @for (entry of archetypes(); track entry.tile.id) {
+        <li
+          class="picker-item"
+          [class.selected]="isArchetypeSelected(entry.type)"
+          role="button"
+          tabindex="0"
+          [attr.aria-pressed]="isArchetypeSelected(entry.type)"
+          (click)="toggleArchetype(entry.type)"
+          (keydown.enter)="toggleArchetype(entry.type)"
+          (keydown.space)="toggleArchetype(entry.type); $event.preventDefault()"
+        >
+          <wfc-grid
+            class="preview"
+            [grid]="entry.previewGrid"
+            [tilePixels]="64"
+            [showGridLines]="false"
+            [showCellLines]="false"
+            [flat]="true"
+          />
+          <span class="label">{{ entry.label }}</span>
+        </li>
+      }
+    </ul>
+    @if (selectedArchetypes().size === 0) {
+      <p class="warn">No tiles selected. Pick at least one to generate.</p>
+    }
   </section>
 
   <section class="result">

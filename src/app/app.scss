@@ -96,8 +96,14 @@ button {
   cursor: pointer;
   transition: background 0.15s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #1d4ed8;
+  }
+
+  &:disabled {
+    background: #cbd5e1;
+    color: #f3f4f6;
+    cursor: not-allowed;
   }
 
   &.secondary {
@@ -105,8 +111,14 @@ button {
     color: #2563eb;
     border: 1px solid #2563eb;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: #eff6ff;
+    }
+
+    &:disabled {
+      background: #f3f4f6;
+      color: #9ca3af;
+      border-color: #d1d5db;
     }
   }
 }
@@ -133,6 +145,7 @@ button {
   text-align: center;
 }
 
+.tile-picker,
 .tile-usage {
   background: white;
   border-radius: 12px;
@@ -140,12 +153,94 @@ button {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 
   h2 {
-    margin: 0 0 12px;
+    margin: 0 0 4px;
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: #6b7280;
+  }
+}
+
+.tile-usage h2 {
+  margin: 0 0 12px;
+}
+
+.tile-picker {
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .count-badge {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #9ca3af;
+  }
+
+  .hint {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+
+  .warn {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: #b91c1c;
+  }
+}
+
+.picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 12px;
+}
+
+.picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: border-color 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+
+  &.selected {
+    opacity: 1;
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+
+  &:hover:not(.selected) {
+    opacity: 0.75;
+    border-color: #93c5fd;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+
+  .preview {
+    line-height: 0;
+  }
+
+  .label {
+    font-size: 12px;
+    color: #1f2937;
+    text-align: center;
+    line-height: 1.2;
   }
 }
 

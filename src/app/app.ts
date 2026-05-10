@@ -13,6 +13,14 @@ interface UsageEntry {
   readonly label: string;
 }
 
+interface ArchetypeEntry {
+  readonly type: TileType;
+  /** Canonical variant of this archetype (lowest-id, ≈ rotation 0). */
+  readonly tile: TileVariant;
+  readonly previewGrid: readonly (TileVariant | null)[][];
+  readonly label: string;
+}
+
 function formatType(type: TileType): string {
   switch (type) {
     case TileType.TJunction:
@@ -42,6 +50,37 @@ export class App {
   protected readonly libraryId = signal<string>(DEFAULT_LIBRARY_ID);
   protected readonly library = computed(() => findLibrary(this.libraryId()));
   protected readonly palette = computed(() => this.library().build());
+
+  /**
+   * One entry per archetype in the current library, keyed by TileType.
+   * Each entry's `tile` is the lowest-id variant of that archetype (the
+   * canonical 0° rotation in practice) so the thumbnail is stable.
+   */
+  protected readonly archetypes = computed<readonly ArchetypeEntry[]>(() => {
+    const palette = this.palette();
+    const seen = new Map<TileType, TileVariant>();
+    for (const v of palette) {
+      const existing = seen.get(v.type);
+      if (!existing || v.id < existing.id) seen.set(v.type, v);
+    }
+    return [...seen.values()]
+      .sort((a, b) => a.id - b.id)
+      .map(tile => ({
+        type: tile.type,
+        tile,
+        previewGrid: [[tile]] as (TileVariant | null)[][],
+        label: formatType(tile.type),
+      }));
+  });
+
+  /**
+   * Set of archetypes the user has chosen to include in generation.
+   * Initialised to all archetypes of the default library; reset to "all"
+   * whenever the user picks a different library via {@link selectLibrary}.
+   */
+  protected readonly selectedArchetypes = signal<ReadonlySet<TileType>>(
+    new Set(this.palette().map(v => v.type)),
+  );
 
   protected readonly rows = signal(5);
   protected readonly cols = signal(5);
@@ -100,8 +139,33 @@ export class App {
     this.regenerate();
   }
 
+  /**
+   * Switches the active library and resets the archetype selection to
+   * include everything in the new library, then regenerates. Library
+   * switches always discard the previous selection set.
+   */
+  selectLibrary(id: string): void {
+    this.libraryId.set(id);
+    this.selectedArchetypes.set(new Set(this.palette().map(v => v.type)));
+    this.regenerate();
+  }
+
+  toggleArchetype(type: TileType): void {
+    this.selectedArchetypes.update(current => {
+      const next = new Set(current);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }
+
+  isArchetypeSelected(type: TileType): boolean {
+    return this.selectedArchetypes().has(type);
+  }
+
   private runGenerator(): WfcResult {
-    const palette = this.palette();
+    const selected = this.selectedArchetypes();
+    const palette = this.palette().filter(v => selected.has(v.type));
     if (palette.length === 0) {
       return { success: false, attempts: 0, grid: [] };
     }
