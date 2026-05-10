@@ -1,0 +1,37 @@
+---
+description: Never auto-commit or auto-push; always require explicit user confirmation
+alwaysApply: true
+---
+
+# No Auto-Commit / No Auto-Push
+
+Git writes in this repo must be **user-initiated**. Do not run `git commit`,
+`git push`, `git tag`, `git reset --hard`, branch deletion, force pushes, or
+any other history-modifying command on your own initiative.
+
+## Rules
+
+- **Never commit** unless the user has explicitly said "commit" (or an obvious
+  synonym like "save this as a commit", "make a commit", "check this in").
+  Finishing a task, fixing a bug, or passing tests is **not** an implicit
+  request to commit.
+- **Never push** unless the user has explicitly said "push" (or "publish",
+  "send to remote", etc.). A request to commit is **not** a request to push.
+- **Never amend, rebase, force-push, or rewrite history** unless the user
+  explicitly asks for that specific operation.
+- **If unsure, ask first.** A single one-line confirmation is preferred over
+  guessing.
+
+## When the user does ask to commit
+
+1. Show `git status` / `git diff` so they can see what will be included.
+2. Propose a commit message and wait for approval **only if** the request was
+   ambiguous about scope or message; otherwise proceed with a concise message
+   following the existing commit-log style.
+3. Stage and commit. **Do not push afterwards** unless they also asked to push.
+4. Run `git status` after the commit to confirm.
+
+## Acceptable proactive git commands (read-only)
+
+These are fine to run without asking, since they don't change anything:
+`git status`, `git diff`, `git log`, `git show`, `git branch`, `git remote -v`.
