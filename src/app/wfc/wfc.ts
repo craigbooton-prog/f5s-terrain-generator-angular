@@ -1,10 +1,12 @@
 import {
   ALL_DIRECTIONS,
   Direction,
+  Terrain,
+  TerrainId,
   TileVariant,
   delta,
   getEdge,
-  isEdgeAllGrass,
+  isEdgeAllOf,
   opposite,
 } from './tile';
 
@@ -13,8 +15,19 @@ export interface WfcOptions {
   readonly cols: number;
   /** Optional integer seed for reproducible output. */
   readonly seed?: number;
-  /** When true, the outer edges of the grid must consist entirely of grass cells. */
+  /**
+   * When true, the outer edges of the grid must consist entirely of
+   * {@link sealedEdgeTerrain} cells. Defaults to `Terrain.Grass` so the
+   * built-in road palette keeps its prior behaviour.
+   */
   readonly sealedBoundary?: boolean;
+  /**
+   * Terrain id required on every outer edge cell when
+   * {@link sealedBoundary} is enabled. Defaults to `Terrain.Grass`.
+   * Libraries whose tiles use a different background (e.g. flagstone
+   * plates) should pass their own background id.
+   */
+  readonly sealedEdgeTerrain?: TerrainId;
   /** How many full restarts to allow on contradiction. Default 200. */
   readonly maxAttempts?: number;
 }
@@ -97,6 +110,7 @@ export function generate(
   }
 
   const sealedBoundary = options.sealedBoundary ?? false;
+  const sealedEdgeTerrain = options.sealedEdgeTerrain ?? Terrain.Grass;
   const maxAttempts = options.maxAttempts ?? 200;
   const rng = makeRng(options.seed);
   const compat = buildCompatibility(palette);
@@ -105,7 +119,7 @@ export function generate(
     const cells: Set<number>[][] = makeFreshGrid(rows, cols, palette.length);
 
     if (sealedBoundary) {
-      applyBoundaryConstraints(cells, palette, rows, cols);
+      applyBoundaryConstraints(cells, palette, rows, cols, sealedEdgeTerrain);
     }
 
     if (collapseAll(cells, palette, compat, rows, cols, rng)) {
@@ -145,6 +159,7 @@ function applyBoundaryConstraints(
   palette: readonly TileVariant[],
   rows: number,
   cols: number,
+  sealedEdgeTerrain: TerrainId,
 ): void {
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -152,10 +167,10 @@ function applyBoundaryConstraints(
       for (const id of [...cell]) {
         const v = palette[id];
         if (
-          (r === 0 && !isEdgeAllGrass(v, Direction.North)) ||
-          (r === rows - 1 && !isEdgeAllGrass(v, Direction.South)) ||
-          (c === 0 && !isEdgeAllGrass(v, Direction.West)) ||
-          (c === cols - 1 && !isEdgeAllGrass(v, Direction.East))
+          (r === 0 && !isEdgeAllOf(v, Direction.North, sealedEdgeTerrain)) ||
+          (r === rows - 1 && !isEdgeAllOf(v, Direction.South, sealedEdgeTerrain)) ||
+          (c === 0 && !isEdgeAllOf(v, Direction.West, sealedEdgeTerrain)) ||
+          (c === cols - 1 && !isEdgeAllOf(v, Direction.East, sealedEdgeTerrain))
         ) {
           cell.delete(id);
         }

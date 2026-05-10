@@ -33,12 +33,13 @@
   fill: #2b2b2b;
 }
 
-// Reserved palette — defined now so archetypes can use these ids without
-// any further wiring. Colours pick a recognisable urban-stone identity:
+// Urban-stone palette — colours pick a recognisable identity:
 //   - flagstone:          warm light-grey paving slab
 //   - kerbstone:          cooler, paler concrete kerb
 //   - cracked-flagstone:  weathered, darker version of flagstone
+//   - cracked-kerbstone:  weathered, darker version of kerbstone
 //   - manhole:            cast-iron lid, slightly cooler than asphalt
+//   - grating:            cast-iron drainage grating set into pavement
 .terrain-flagstone {
   fill: #9a9285;
 }
@@ -51,8 +52,16 @@
   fill: #7d756a;
 }
 
+.terrain-cracked-kerbstone {
+  fill: #9c958c;
+}
+
 .terrain-manhole {
   fill: #1d1d1d;
+}
+
+.terrain-grating {
+  fill: #36302a;
 }
 
 .terrain-failed {

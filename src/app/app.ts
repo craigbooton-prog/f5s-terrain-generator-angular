@@ -1,7 +1,8 @@
 import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GridComponent } from './grid/grid';
-import { TileType, TileVariant, buildDefaultTileSet } from './wfc/tile';
+import { TileType, TileVariant } from './wfc/tile';
+import { DEFAULT_LIBRARY_ID, TILE_LIBRARIES, findLibrary } from './wfc/libraries';
 import { WfcResult, generate } from './wfc/wfc';
 
 interface UsageEntry {
@@ -13,7 +14,20 @@ interface UsageEntry {
 }
 
 function formatType(type: TileType): string {
-  return type === TileType.TJunction ? 'T-junction' : type;
+  switch (type) {
+    case TileType.TJunction:
+      return 'T-junction';
+    case TileType.PlateC:
+      return 'Plate C';
+    case TileType.PlateCC:
+      return 'Plate CC';
+    case TileType.PlateCD:
+      return 'Plate CD';
+    case TileType.PlateCDRev:
+      return 'Plate CD-rev';
+    default:
+      return type;
+  }
 }
 
 @Component({
@@ -24,7 +38,10 @@ function formatType(type: TileType): string {
   styleUrl: './app.scss',
 })
 export class App {
-  protected readonly palette = buildDefaultTileSet();
+  protected readonly libraries = TILE_LIBRARIES;
+  protected readonly libraryId = signal<string>(DEFAULT_LIBRARY_ID);
+  protected readonly library = computed(() => findLibrary(this.libraryId()));
+  protected readonly palette = computed(() => this.library().build());
 
   protected readonly rows = signal(5);
   protected readonly cols = signal(5);
@@ -79,11 +96,16 @@ export class App {
   }
 
   private runGenerator(): WfcResult {
-    return generate(this.palette, {
+    const palette = this.palette();
+    if (palette.length === 0) {
+      return { success: false, attempts: 0, grid: [] };
+    }
+    return generate(palette, {
       rows: this.rows(),
       cols: this.cols(),
       seed: this.useSeed() ? this.seed() : undefined,
       sealedBoundary: this.sealedBoundary(),
+      sealedEdgeTerrain: this.library().sealedEdgeTerrain,
     });
   }
 }

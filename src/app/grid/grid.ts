@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { TILE_SIZE, TileVariant } from '../wfc/tile';
+import { TILE_SIZE, TileVariant, cellTerrain } from '../wfc/tile';
 
 interface CellPlacement {
   /** Pixel-space x of the cell's top-left corner (in the SVG coordinate system). */
@@ -71,7 +71,7 @@ export class GridComponent {
             placements.push({
               x: baseX + cellC * cellPx,
               y: baseY + cellR * cellPx,
-              terrain: tile.cells[cellR][cellC],
+              terrain: cellTerrain(tile.cells[cellR][cellC]),
               key: `${r}-${c}-${cellR}-${cellC}`,
             });
           }

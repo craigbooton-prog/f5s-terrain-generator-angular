@@ -5,6 +5,15 @@
   </header>
 
   <section class="controls">
+    <label class="library">
+      <span>Tile library</span>
+      <select [ngModel]="libraryId()" (ngModelChange)="libraryId.set($event); regenerate()">
+        @for (lib of libraries; track lib.id) {
+          <option [value]="lib.id">{{ lib.name }}</option>
+        }
+      </select>
+    </label>
+
     <label>
       <span>Rows</span>
       <input
@@ -108,7 +117,8 @@
       </div>
     }
     <p class="stats">
-      Palette: {{ palette.length }} tile variants ·
+      Library: {{ library().name }} ·
+      Palette: {{ palette().length }} tile variants ·
       Grid: {{ rows() }} × {{ cols() }} ·
       Attempts: {{ result().attempts }}
     </p>
