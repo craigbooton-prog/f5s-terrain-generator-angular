@@ -114,6 +114,28 @@
     </p>
   </section>
 
+  @if (result().success && tileUsage().length > 0) {
+    <section class="tile-usage">
+      <h2>Tiles used</h2>
+      <ul class="usage-list">
+        @for (entry of tileUsage(); track entry.tile.id) {
+          <li class="usage-item">
+            <wfc-grid
+              class="preview"
+              [grid]="entry.previewGrid"
+              [tilePixels]="56"
+              [showGridLines]="false"
+              [showCellLines]="false"
+              [flat]="true"
+            />
+            <span class="label">{{ entry.label }}</span>
+            <span class="count">×{{ entry.count }}</span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
   <footer>
     <a
       href="https://en.wikipedia.org/wiki/Model_synthesis"

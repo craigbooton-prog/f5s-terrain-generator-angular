@@ -11,6 +11,13 @@
   // SVG cells line up perfectly, but a 1-px hairline sometimes shows in
   // antialiased rendering. crispEdges + this border hide it cleanly.
   overflow: hidden;
+
+  &.flat {
+    // Compact appearance for tiny preview tiles (e.g. inside the usage
+    // panel). The big shadow + radius would visually dwarf the tile itself.
+    border-radius: 4px;
+    box-shadow: none;
+  }
 }
 
 .terrain {

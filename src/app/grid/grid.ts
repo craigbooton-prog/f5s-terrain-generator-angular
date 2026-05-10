@@ -24,6 +24,12 @@ export class GridComponent {
   readonly showGridLines = input<boolean>(true);
   /** Show lines along every inner cell boundary (the 12×12 sub-grid). */
   readonly showCellLines = input<boolean>(false);
+  /**
+   * Render the SVG without the big drop-shadow / 12-px corner radius.
+   * Useful when the grid is being used as a small preview (e.g. in the
+   * tile-usage panel) where the chrome would dominate the tile itself.
+   */
+  readonly flat = input<boolean>(false);
 
   protected readonly cols = computed(() => this.grid()[0]?.length ?? 0);
   protected readonly rows = computed(() => this.grid().length);
