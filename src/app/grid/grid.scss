@@ -39,7 +39,8 @@
 //   - cracked-flagstone:  weathered, darker version of flagstone
 //   - cracked-kerbstone:  weathered, darker version of kerbstone
 //   - manhole:            cast-iron lid, slightly cooler than asphalt
-//   - grating:            cast-iron drainage grating set into pavement
+//   - cracked-road:         slightly darker than road (distressed asphalt)
+//   - recess:               shallow groove in flagstone
 .terrain-flagstone {
   fill: #9a9285;
 }
@@ -60,9 +61,18 @@
   fill: #1d1d1d;
 }
 
+.terrain-cracked-road {
+  fill: #1a1a1a;
+}
+
 .terrain-grating {
   fill: #36302a;
 }
+
+.terrain-recess {
+  fill: #8a8378;
+}
+
 
 .terrain-failed {
   fill: #d33;

@@ -15,6 +15,7 @@ import {
   opposite,
 } from './tile';
 import { buildConcretiumFieldsBasicTileSet } from './concretium-fields-basic';
+import { buildConcretiumTilesBasicV2Set } from './concretium-tiles-basic-v2';
 import { TILE_LIBRARIES, findLibrary } from './libraries';
 import { generate } from './wfc';
 
@@ -28,6 +29,8 @@ describe('Terrain registry', () => {
     expect(Terrain.CrackedKerbstone).toBe('cracked-kerbstone');
     expect(Terrain.Manhole).toBe('manhole');
     expect(Terrain.Grating).toBe('grating');
+    expect(Terrain.CrackedRoad).toBe('cracked-road');
+    expect(Terrain.Recess).toBe('recess');
   });
 
   it('default WFC archetypes only emit Grass and Road, never the urban-stone ids', () => {
@@ -39,7 +42,10 @@ describe('Terrain registry', () => {
       Terrain.CrackedKerbstone,
       Terrain.Manhole,
       Terrain.Grating,
+      Terrain.CrackedRoad,
+      Terrain.Recess,
     ]);
+
     for (const v of palette) {
       for (const row of v.cells) {
         for (const c of row) {
@@ -274,16 +280,94 @@ describe('Concretium fields - basic palette', () => {
   });
 });
 
+describe('Concretium tiles - basic - V2 palette', () => {
+  it('contains 72 variants (18 archetypes × 4 unique rotations each)', () => {
+    const palette = buildConcretiumTilesBasicV2Set();
+    expect(palette.length).toBe(72);
+
+    const counts = new Map<TileType, number>();
+    for (const v of palette) counts.set(v.type, (counts.get(v.type) ?? 0) + 1);
+
+    expect(counts.size).toBe(18);
+    expect([...counts.values()].every(x => x === 4)).toBe(true);
+  });
+
+  it('every variant uses only Concretium V2 workbook terrains in render terrain', () => {
+    const palette = buildConcretiumTilesBasicV2Set();
+    const allowed = new Set<string>([
+      Terrain.Road,
+      Terrain.Flagstone,
+      Terrain.Kerbstone,
+      Terrain.CrackedFlagstone,
+      Terrain.CrackedKerbstone,
+      Terrain.Grating,
+      Terrain.Manhole,
+      Terrain.CrackedRoad,
+      Terrain.Recess,
+    ]);
+    for (const v of palette) {
+      expect(v.cells.length).toBe(TILE_SIZE);
+      for (const row of v.cells) {
+        expect(row.length).toBe(TILE_SIZE);
+        for (const c of row) {
+          expect(allowed.has(cellTerrain(c))).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('decorative renders never appear on extracted edge profiles', () => {
+    const palette = buildConcretiumTilesBasicV2Set();
+    const decoratives = new Set<string>([
+      Terrain.CrackedFlagstone,
+      Terrain.CrackedKerbstone,
+      Terrain.Grating,
+      Terrain.Manhole,
+      Terrain.CrackedRoad,
+      Terrain.Recess,
+    ]);
+    for (const v of palette) {
+      for (const dir of [Direction.North, Direction.East, Direction.South, Direction.West]) {
+        for (const t of getEdge(v, dir)) {
+          expect(decoratives.has(t)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('collapses a small grid deterministically without seam violations', () => {
+    const palette = buildConcretiumTilesBasicV2Set();
+    const { success, grid } = generate(palette, { rows: 4, cols: 4, seed: 707 });
+    expect(success).toBe(true);
+
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        const here = grid[r][c]!;
+        if (c + 1 < grid[r].length) {
+          const right = grid[r][c + 1]!;
+          expect(getEdge(here, Direction.East)).toEqual(getEdge(right, Direction.West));
+        }
+        if (r + 1 < grid.length) {
+          const below = grid[r + 1][c]!;
+          expect(getEdge(here, Direction.South)).toEqual(getEdge(below, Direction.North));
+        }
+      }
+    }
+  });
+});
+
 describe('library registry', () => {
-  it('exposes Basic City Tiles and Concretium fields - basic', () => {
+  it('exposes the three tile-library ids', () => {
     const ids = TILE_LIBRARIES.map(l => l.id);
     expect(ids).toContain('basic-city-tiles');
     expect(ids).toContain('concretium-fields-basic');
+    expect(ids).toContain('concretium-tiles-basic-v2');
   });
 
-  it('Basic City Tiles seals on grass; Concretium fields - basic seals on flagstone', () => {
+  it('Urban Concretium libraries seal on flagstone; Basic City Tiles seals on grass', () => {
     expect(findLibrary('basic-city-tiles').sealedEdgeTerrain).toBe(Terrain.Grass);
     expect(findLibrary('concretium-fields-basic').sealedEdgeTerrain).toBe(Terrain.Flagstone);
+    expect(findLibrary('concretium-tiles-basic-v2').sealedEdgeTerrain).toBe(Terrain.Flagstone);
   });
 
   it('throws on unknown library id', () => {

@@ -16,6 +16,7 @@
 
 import { Terrain, TerrainId, TileVariant, buildDefaultTileSet } from './tile';
 import { buildConcretiumFieldsBasicTileSet } from './concretium-fields-basic';
+import { buildConcretiumTilesBasicV2Set } from './concretium-tiles-basic-v2';
 
 export interface TileLibrary {
   /** Stable id used in URLs / saved settings / tests. */
@@ -48,6 +49,14 @@ export const TILE_LIBRARIES: readonly TileLibrary[] = [
     description:
       'Hand-authored 12×12 plate tiles with flagstone pavement, kerbstone strips and road edges.',
     build: buildConcretiumFieldsBasicTileSet,
+    sealedEdgeTerrain: Terrain.Flagstone,
+  },
+  {
+    id: 'concretium-tiles-basic-v2',
+    name: 'Concretium tiles - basic - V2',
+    description:
+      'Full 18-variant workbook palette from Concretuim-basic-tiles-grid-values.xlsx.',
+    build: buildConcretiumTilesBasicV2Set,
     sealedEdgeTerrain: Terrain.Flagstone,
   },
 ];

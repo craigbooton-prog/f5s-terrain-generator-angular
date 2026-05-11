@@ -56,6 +56,10 @@ export const Terrain = {
   CrackedKerbstone: 'cracked-kerbstone',
   Manhole: 'manhole',
   Grating: 'grating',
+  /** Cosmetic distress on asphalt; matches as plain road at edges. */
+  CrackedRoad: 'cracked-road',
+  /** Pavement groove; matches neighbours as flagstone. */
+  Recess: 'recess',
 } as const;
 
 export type TerrainId = string;
@@ -119,6 +123,20 @@ export enum TileType {
   PlateCC = 'PlateCC',
   PlateCD = 'PlateCD',
   PlateCDRev = 'PlateCDRev',
+  PlateAdda = 'PlateAdda',
+  PlateAV2 = 'PlateAV2',
+  PlateB = 'PlateB',
+  PlateDD2 = 'PlateDD2',
+  PlateD2 = 'PlateD2',
+  PlateACRev2 = 'PlateACRev2',
+  PlateABA = 'PlateABA',
+  PlateAA = 'PlateAA',
+  PlateAB = 'PlateAB',
+  PlateABRev = 'PlateABRev',
+  PlateABV2 = 'PlateABV2',
+  PlateAC = 'PlateAC',
+  PlateBB = 'PlateBB',
+  PlateSP = 'PlateSP',
 }
 
 export enum Direction {
@@ -214,14 +232,18 @@ function paintRect(
  */
 function paintArchetype(sockets: SocketTuple): Cell[][] {
   const cells = makeFilledGrid(Terrain.Grass);
-  const stripStart = ROAD_OFFSET;                   // first road row/col (= 4)
-  const stripEnd = ROAD_OFFSET + ROAD_WIDTH - 1;    // last road row/col  (= 7)
-  const last = TILE_SIZE - 1;                       // = 11
+  const stripStart = ROAD_OFFSET; // first road row/col (= 4)
+  const stripEnd = ROAD_OFFSET + ROAD_WIDTH - 1; // last road row/col  (= 7)
+  const last = TILE_SIZE - 1; // = 11
 
-  if (sockets[Direction.North]) paintRect(cells, 0,          stripEnd,  stripStart, stripEnd,  Terrain.Road);
-  if (sockets[Direction.South]) paintRect(cells, stripStart, last,      stripStart, stripEnd,  Terrain.Road);
-  if (sockets[Direction.East])  paintRect(cells, stripStart, stripEnd,  stripStart, last,      Terrain.Road);
-  if (sockets[Direction.West])  paintRect(cells, stripStart, stripEnd,  0,          stripEnd,  Terrain.Road);
+  if (sockets[Direction.North])
+    paintRect(cells, 0, stripEnd, stripStart, stripEnd, Terrain.Road);
+  if (sockets[Direction.South])
+    paintRect(cells, stripStart, last, stripStart, stripEnd, Terrain.Road);
+  if (sockets[Direction.East])
+    paintRect(cells, stripStart, stripEnd, stripStart, last, Terrain.Road);
+  if (sockets[Direction.West])
+    paintRect(cells, stripStart, stripEnd, 0, stripEnd, Terrain.Road);
 
   return cells;
 }
@@ -310,11 +332,21 @@ export interface AuthoredArchetype {
 }
 
 const DEFAULT_ARCHETYPES: readonly Archetype[] = [
-  { kind: 'painted', type: TileType.Empty,     sockets: [false, false, false, false], weight: 4.0 },
-  { kind: 'painted', type: TileType.Straight,  sockets: [true,  false, true,  false], weight: 2.0 },
-  { kind: 'painted', type: TileType.Corner,    sockets: [true,  true,  false, false], weight: 1.5 },
-  { kind: 'painted', type: TileType.TJunction, sockets: [true,  true,  true,  false], weight: 1.0 },
-  { kind: 'painted', type: TileType.Crossroad, sockets: [true,  true,  true,  true],  weight: 0.5 },
+  {
+    kind: 'painted',
+    type: TileType.Empty,
+    sockets: [false, false, false, false],
+    weight: 4.0,
+  },
+  { kind: 'painted', type: TileType.Straight, sockets: [true, false, true, false], weight: 2.0 },
+  { kind: 'painted', type: TileType.Corner, sockets: [true, true, false, false], weight: 1.5 },
+  {
+    kind: 'painted',
+    type: TileType.TJunction,
+    sockets: [true, true, true, false],
+    weight: 1.0,
+  },
+  { kind: 'painted', type: TileType.Crossroad, sockets: [true, true, true, true], weight: 0.5 },
 ];
 
 function archetypeBaseCells(a: Archetype): Cell[][] {
