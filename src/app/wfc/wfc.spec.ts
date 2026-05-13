@@ -187,6 +187,48 @@ describe('wfc.generate', () => {
       expect(isEdgeAllGrass(grid[i][last]!, Direction.East)).toBe(true);
     }
   });
+
+  describe('inventoryCaps', () => {
+    it('fails immediately when capped totals cannot fill the grid', () => {
+      const palette = buildDefaultTileSet();
+      const caps = new Map<TileType, number>([
+        [TileType.Empty, 6],
+        [TileType.Straight, 10],
+        [TileType.Corner, 10],
+        [TileType.TJunction, 8],
+        [TileType.Crossroad, 1],
+      ]);
+      const result = generate(palette, {
+        rows: 6,
+        cols: 6,
+        inventoryCaps: caps,
+        seed: 1,
+      });
+      expect(result.success).toBe(false);
+      expect(result.attempts).toBe(0);
+    });
+
+    it('never places more of a capped TileType than the shared pool allows', () => {
+      const palette = buildDefaultTileSet();
+      const caps = new Map<TileType, number>([[TileType.Corner, 3]]);
+      let ok = false;
+      let cornerCells = 0;
+      for (let seed = 1; seed < 25000; seed++) {
+        const r = generate(palette, { rows: 6, cols: 6, seed, inventoryCaps: caps });
+        if (!r.success) continue;
+        cornerCells = 0;
+        for (const row of r.grid) {
+          for (const cell of row) {
+            if (cell?.type === TileType.Corner) cornerCells++;
+          }
+        }
+        ok = true;
+        break;
+      }
+      expect(ok).toBe(true);
+      expect(cornerCells).toBeLessThanOrEqual(3);
+    });
+  });
 });
 
 describe('Cell metadata layer', () => {

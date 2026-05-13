@@ -3,6 +3,7 @@ import {
   Direction,
   Terrain,
   TerrainId,
+  TileType,
   TileVariant,
   delta,
   getEdge,
@@ -30,6 +31,14 @@ export interface WfcOptions {
   readonly sealedEdgeTerrain?: TerrainId;
   /** How many full restarts to allow on contradiction. Default 200. */
   readonly maxAttempts?: number;
+  /**
+   * Optional placement budget per archetype ({@link TileType}). Omit a type ⇒
+   * unlimited placements (shared across all rotations of that type). A value
+   * of `0` allows no placements of that type. Entries are starting counts
+   * consumed as cells collapse; exhaustion removes that type’s palette indices
+   * from unconstrained cells alongside propagation.
+   */
+  readonly inventoryCaps?: ReadonlyMap<TileType, number>;
 }
 
 export interface WfcResult {
@@ -114,6 +123,15 @@ export function generate(
   const maxAttempts = options.maxAttempts ?? 200;
   const rng = makeRng(options.seed);
   const compat = buildCompatibility(palette);
+  const capMap = options.inventoryCaps;
+
+  if (inventoryInsufficientForGrid(palette, capMap, rows, cols)) {
+    return {
+      success: false,
+      attempts: 0,
+      grid: emptySnapshot(rows, cols),
+    };
+  }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const cells: Set<number>[][] = makeFreshGrid(rows, cols, palette.length);
@@ -122,7 +140,9 @@ export function generate(
       applyBoundaryConstraints(cells, palette, rows, cols, sealedEdgeTerrain);
     }
 
-    if (collapseAll(cells, palette, compat, rows, cols, rng)) {
+    const remaining = cloneInventoryRemaining(capMap);
+
+    if (collapseAll(cells, palette, compat, rows, cols, rng, remaining)) {
       return {
         success: true,
         attempts: attempt,
@@ -136,6 +156,35 @@ export function generate(
     attempts: maxAttempts,
     grid: emptySnapshot(rows, cols),
   };
+}
+
+/**
+ * Mutable per-attempt counters (only capped types). `null` means “no caps”.
+ */
+function cloneInventoryRemaining(caps?: ReadonlyMap<TileType, number>): Map<TileType, number> | null {
+  if (!caps || caps.size === 0) return null;
+  return new Map([...caps]);
+}
+
+/**
+ * If every archetype appearing in {@link palette} has a finite cap, require
+ * the sum of those caps ≥ grid cells — otherwise synthesis is impossible.
+ */
+function inventoryInsufficientForGrid(
+  palette: readonly TileVariant[],
+  caps: ReadonlyMap<TileType, number> | undefined,
+  rows: number,
+  cols: number,
+): boolean {
+  if (!caps || caps.size === 0) return false;
+  const typesInPalette = new Set(palette.map(v => v.type));
+  const allFinite = [...typesInPalette].every(t => caps.has(t));
+  if (!allFinite) return false;
+  let sum = 0;
+  for (const t of typesInPalette) {
+    sum += caps.get(t) ?? 0;
+  }
+  return sum < rows * cols;
 }
 
 function makeFreshGrid(rows: number, cols: number, paletteSize: number): Set<number>[][] {
@@ -186,6 +235,7 @@ function collapseAll(
   rows: number,
   cols: number,
   rng: () => number,
+  remaining: Map<TileType, number> | null,
 ): boolean {
   while (true) {
     const target = findMinEntropyCell(cells, rows, cols, rng);
@@ -193,8 +243,11 @@ function collapseAll(
       return true; // every cell is collapsed
     }
 
-    collapseCell(cells, palette, target.r, target.c, rng);
-    if (!propagate(cells, compat, rows, cols, target.r, target.c)) {
+    if (!collapseCell(cells, palette, target.r, target.c, rng, remaining)) return false;
+    const stripResult = stripExhaustedInventory(cells, palette, rows, cols, remaining);
+    if (!stripResult.ok) return false;
+    const seeds = [...stripResult.changed, { r: target.r, c: target.c }];
+    if (!propagateMulti(cells, compat, rows, cols, seeds)) {
       return false; // contradiction
     }
   }
@@ -231,9 +284,12 @@ function collapseCell(
   r: number,
   c: number,
   rng: () => number,
-): void {
+  remaining: Map<TileType, number> | null,
+): boolean {
   const cell = cells[r][c];
-  const ids = [...cell];
+  const ids = [...cell].filter(id => archetypeSlotsLeft(palette[id].type, remaining));
+
+  if (ids.length === 0) return false;
 
   let total = 0;
   for (const id of ids) total += palette[id].weight;
@@ -250,17 +306,57 @@ function collapseCell(
 
   cell.clear();
   cell.add(chosen);
+  consumeInventoryForTile(palette[chosen].type, remaining);
+  return true;
 }
 
-function propagate(
+function archetypeSlotsLeft(type: TileType, remaining: Map<TileType, number> | null): boolean {
+  if (!remaining) return true;
+  const n = remaining.get(type);
+  if (n === undefined) return true;
+  return n > 0;
+}
+
+function consumeInventoryForTile(type: TileType, remaining: Map<TileType, number> | null): void {
+  if (!remaining || !remaining.has(type)) return;
+  remaining.set(type, remaining.get(type)! - 1);
+}
+
+/** Drops exhausted capped types from every unconstrained cell. */
+function stripExhaustedInventory(
+  cells: Set<number>[][],
+  palette: readonly TileVariant[],
+  rows: number,
+  cols: number,
+  remaining: Map<TileType, number> | null,
+): { readonly ok: true; readonly changed: { r: number; c: number }[] } | { readonly ok: false } {
+  if (!remaining) return { ok: true, changed: [] };
+  const changed: { r: number; c: number }[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = cells[r][c];
+      if (cell.size <= 1) continue;
+      const before = cell.size;
+      for (const id of [...cell]) {
+        const t = palette[id].type;
+        const n = remaining.get(t);
+        if (n !== undefined && n <= 0) cell.delete(id);
+      }
+      if (cell.size === 0) return { ok: false };
+      if (cell.size < before) changed.push({ r, c });
+    }
+  }
+  return { ok: true, changed };
+}
+
+function propagateMulti(
   cells: Set<number>[][],
   compat: ReadonlySet<number>[][],
   rows: number,
   cols: number,
-  startR: number,
-  startC: number,
+  seeds: readonly { r: number; c: number }[],
 ): boolean {
-  const queue: { r: number; c: number }[] = [{ r: startR, c: startC }];
+  const queue: { r: number; c: number }[] = [...seeds];
 
   while (queue.length > 0) {
     const { r, c } = queue.shift()!;

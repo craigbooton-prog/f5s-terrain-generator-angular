@@ -114,53 +114,95 @@
   </section>
 
   <section class="tile-picker">
-    <h2>
-      Tiles in {{ library().name }}
-      <span class="count-badge">
-        {{ selectedArchetypes().size }} / {{ archetypes().length }} selected
-      </span>
-    </h2>
-    <p class="hint">Click a tile to include or exclude it from generation.</p>
-    <ul class="picker-list">
-      @for (entry of archetypes(); track entry.type) {
-        <li
-          class="picker-item"
-          [class.selected]="isArchetypeSelected(entry.type)"
-          role="button"
-          tabindex="0"
-          [attr.aria-pressed]="isArchetypeSelected(entry.type)"
-          (click)="toggleArchetype(entry.type)"
-          (keydown.enter)="toggleArchetype(entry.type)"
-          (keydown.space)="toggleArchetype(entry.type); $event.preventDefault()"
-        >
-          <wfc-grid
-            class="preview"
-            [grid]="entry.previewGrid"
-            [tilePixels]="64"
-            [showGridLines]="false"
-            [showCellLines]="false"
-            [flat]="true"
-          />
-          <span class="label">{{ entry.label }}</span>
-          <div class="picker-weight" (click)="$event.stopPropagation()">
-            <label>
-              <span class="weight-label">Weight</span>
-              <input
-                type="number"
-                min="0.01"
-                max="100"
-                step="0.1"
-                [disabled]="!isArchetypeSelected(entry.type)"
-                [ngModel]="displayedArchetypeWeight(entry)"
-                (ngModelChange)="setArchetypeWeight(entry.type, $event, entry.tile.weight)"
+    <div class="card-head">
+      <button
+        type="button"
+        class="card-toggle"
+        (click)="tilePickerCardOpen.update(o => !o)"
+        [attr.aria-expanded]="tilePickerCardOpen()"
+        aria-controls="tile-picker-panel"
+        id="tile-picker-toggle"
+      >
+        <span class="chevron" [class.open]="tilePickerCardOpen()" aria-hidden="true"></span>
+        <span class="sr-only">Show or hide tile picker list</span>
+      </button>
+      <h2 id="tile-picker-title">
+        Tiles in {{ library().name }}
+        <span class="count-badge">
+          {{ selectedArchetypes().size }} / {{ archetypes().length }} selected
+        </span>
+      </h2>
+    </div>
+    @if (tilePickerCardOpen()) {
+      <div
+        id="tile-picker-panel"
+        class="card-panel"
+        role="region"
+        aria-labelledby="tile-picker-title"
+      >
+        <p class="hint">
+          Click a tile to include or exclude it. Weight and Available (blank = unlimited, 0 = none)
+          apply when you Generate.
+        </p>
+        <ul class="picker-list">
+          @for (entry of archetypes(); track entry.type) {
+            <li
+              class="picker-item"
+              [class.selected]="isArchetypeSelected(entry.type)"
+              role="button"
+              tabindex="0"
+              [attr.aria-pressed]="isArchetypeSelected(entry.type)"
+              (click)="toggleArchetype(entry.type)"
+              (keydown.enter)="toggleArchetype(entry.type)"
+              (keydown.space)="toggleArchetype(entry.type); $event.preventDefault()"
+            >
+              <wfc-grid
+                class="preview"
+                [grid]="entry.previewGrid"
+                [tilePixels]="64"
+                [showGridLines]="false"
+                [showCellLines]="false"
+                [flat]="true"
               />
-            </label>
-          </div>
-        </li>
-      }
-    </ul>
-    @if (selectedArchetypes().size === 0) {
-      <p class="warn">No tiles selected. Pick at least one to generate.</p>
+              <span class="label">{{ entry.label }}</span>
+              <div class="picker-controls" (click)="$event.stopPropagation()">
+                <div class="picker-weight">
+                  <label>
+                    <span class="controls-label">Weight</span>
+                    <input
+                      type="number"
+                      min="0.01"
+                      max="100"
+                      step="0.1"
+                      [disabled]="!isArchetypeSelected(entry.type)"
+                      [ngModel]="displayedArchetypeWeight(entry)"
+                      (ngModelChange)="setArchetypeWeight(entry.type, $event, entry.tile.weight)"
+                    />
+                  </label>
+                </div>
+                <div class="picker-available">
+                  <label>
+                    <span class="controls-label">Available</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10000"
+                      step="1"
+                      [attr.placeholder]="'∞'"
+                      [disabled]="!isArchetypeSelected(entry.type)"
+                      [ngModel]="displayArchetypeInventory(entry)"
+                      (ngModelChange)="setArchetypeInventory(entry.type, $event)"
+                    />
+                  </label>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+        @if (selectedArchetypes().size === 0) {
+          <p class="warn">No tiles selected. Pick at least one to generate.</p>
+        }
+      </div>
     }
   </section>
 
@@ -188,26 +230,48 @@
 
   @if (result().success && tileUsage().length > 0) {
     <section class="tile-usage">
-      <h2>
-        Tiles used
-        <span class="count-badge">({{ tileUsageTotalCount() }} total)</span>
-      </h2>
-      <ul class="usage-list">
-        @for (entry of tileUsage(); track entry.tile.id) {
-          <li class="usage-item">
-            <wfc-grid
-              class="preview"
-              [grid]="entry.previewGrid"
-              [tilePixels]="56"
-              [showGridLines]="false"
-              [showCellLines]="false"
-              [flat]="true"
-            />
-            <span class="label">{{ entry.label }}</span>
-            <span class="count">×{{ entry.count }}</span>
-          </li>
-        }
-      </ul>
+      <div class="card-head">
+        <button
+          type="button"
+          class="card-toggle"
+          (click)="tileUsageCardOpen.update(o => !o)"
+          [attr.aria-expanded]="tileUsageCardOpen()"
+          aria-controls="tile-usage-panel"
+          id="tile-usage-toggle"
+        >
+          <span class="chevron" [class.open]="tileUsageCardOpen()" aria-hidden="true"></span>
+          <span class="sr-only">Show or hide tiles used list</span>
+        </button>
+        <h2 id="tile-usage-title">
+          Tiles used
+          <span class="count-badge">({{ tileUsageTotalCount() }} total)</span>
+        </h2>
+      </div>
+      @if (tileUsageCardOpen()) {
+        <div
+          id="tile-usage-panel"
+          class="card-panel"
+          role="region"
+          aria-labelledby="tile-usage-title"
+        >
+          <ul class="usage-list">
+            @for (entry of tileUsage(); track entry.tile.id) {
+              <li class="usage-item">
+                <wfc-grid
+                  class="preview"
+                  [grid]="entry.previewGrid"
+                  [tilePixels]="56"
+                  [showGridLines]="false"
+                  [showCellLines]="false"
+                  [flat]="true"
+                />
+                <span class="label">{{ entry.label }}</span>
+                <span class="count">×{{ entry.count }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
     </section>
   }
 

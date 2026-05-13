@@ -69,9 +69,19 @@ function formatType(type: TileType): string {
 const ARCHETYPE_WEIGHT_MIN = 0.01;
 const ARCHETYPE_WEIGHT_MAX = 100;
 
+const ARCHETYPE_INVENTORY_MIN = 0;
+const ARCHETYPE_INVENTORY_MAX = 10_000;
+
 function clampArchetypeWeight(n: number): number {
   if (!Number.isFinite(n)) return ARCHETYPE_WEIGHT_MIN;
   return Math.min(ARCHETYPE_WEIGHT_MAX, Math.max(ARCHETYPE_WEIGHT_MIN, n));
+}
+
+function clampArchetypeInventory(n: number): number {
+  if (!Number.isFinite(n)) return ARCHETYPE_INVENTORY_MIN;
+  return Math.round(
+    Math.min(ARCHETYPE_INVENTORY_MAX, Math.max(ARCHETYPE_INVENTORY_MIN, n)),
+  );
 }
 
 @Component({
@@ -124,6 +134,13 @@ export class App {
    */
   protected readonly archetypeWeights = signal(new Map<TileType, number>());
 
+  /**
+   * Optional max placements per archetype for WFC. Missing entry ⇒ unlimited.
+   * Stored values clamp to integers 0…10000 (`0` = that archetype may not appear).
+   * Cleared when switching library.
+   */
+  protected readonly archetypeInventoryCaps = signal(new Map<TileType, number>());
+
   protected readonly rows = signal(5);
   protected readonly cols = signal(5);
   protected readonly tilePixels = signal(96);
@@ -132,6 +149,11 @@ export class App {
   protected readonly seed = signal(42);
   protected readonly showGridLines = signal(true);
   protected readonly showCellLines = signal(false);
+
+  /** Collapsible tile-picker card body (header stays visible). */
+  protected readonly tilePickerCardOpen = signal(true);
+  /** Collapsible “Tiles used” card body. */
+  protected readonly tileUsageCardOpen = signal(true);
 
   protected readonly result = signal<WfcResult>(this.runGenerator());
   protected readonly grid = computed(() => this.result().grid);
@@ -195,6 +217,7 @@ export class App {
     this.libraryId.set(id);
     this.selectedArchetypes.set(new Set(this.palette().map(v => v.type)));
     this.archetypeWeights.set(new Map());
+    this.archetypeInventoryCaps.set(new Map());
     this.regenerate();
   }
 
@@ -234,6 +257,37 @@ export class App {
     this.archetypeWeights.set(current);
   }
 
+  /** Empty string ⇒ unlimited (omit from caps map passed to generate). */
+  protected displayArchetypeInventory(entry: ArchetypeEntry): number | '' {
+    const v = this.archetypeInventoryCaps().get(entry.type);
+    return v !== undefined ? v : '';
+  }
+
+  protected setArchetypeInventory(
+    type: TileType,
+    raw: string | number | null | undefined,
+  ): void {
+    const current = new Map(this.archetypeInventoryCaps());
+    if (
+      raw === null ||
+      raw === undefined ||
+      raw === '' ||
+      (typeof raw === 'string' && raw.trim() === '')
+    ) {
+      current.delete(type);
+      this.archetypeInventoryCaps.set(current);
+      return;
+    }
+    const n = typeof raw === 'number' ? raw : Number(String(raw).trim());
+    if (!Number.isFinite(n)) {
+      current.delete(type);
+      this.archetypeInventoryCaps.set(current);
+      return;
+    }
+    current.set(type, clampArchetypeInventory(n));
+    this.archetypeInventoryCaps.set(current);
+  }
+
   private runGenerator(): WfcResult {
     const selected = this.selectedArchetypes();
     const weights = this.archetypeWeights();
@@ -247,12 +301,19 @@ export class App {
     if (weightedPalette.length === 0) {
       return { success: false, attempts: 0, grid: [] };
     }
+    const inv = this.archetypeInventoryCaps();
+    const inventoryCaps = new Map<TileType, number>();
+    for (const t of new Set(weightedPalette.map(v => v.type))) {
+      const c = inv.get(t);
+      if (c !== undefined) inventoryCaps.set(t, clampArchetypeInventory(c));
+    }
     return generate(weightedPalette, {
       rows: this.rows(),
       cols: this.cols(),
       seed: this.useSeed() ? this.seed() : undefined,
       sealedBoundary: this.sealedBoundary(),
       sealedEdgeTerrain: this.library().sealedEdgeTerrain,
+      inventoryCaps: inventoryCaps.size > 0 ? inventoryCaps : undefined,
     });
   }
 }
