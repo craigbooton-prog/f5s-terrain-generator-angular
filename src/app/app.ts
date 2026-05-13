@@ -66,6 +66,14 @@ function formatType(type: TileType): string {
   }
 }
 
+const ARCHETYPE_WEIGHT_MIN = 0.01;
+const ARCHETYPE_WEIGHT_MAX = 100;
+
+function clampArchetypeWeight(n: number): number {
+  if (!Number.isFinite(n)) return ARCHETYPE_WEIGHT_MIN;
+  return Math.min(ARCHETYPE_WEIGHT_MAX, Math.max(ARCHETYPE_WEIGHT_MIN, n));
+}
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -109,6 +117,12 @@ export class App {
   protected readonly selectedArchetypes = signal<ReadonlySet<TileType>>(
     new Set(this.palette().map(v => v.type)),
   );
+
+  /**
+   * Optional per-archetype weight overrides for WFC collapse. Empty map ⇒ use
+   * each variant’s built-in palette weight. Cleared when switching library.
+   */
+  protected readonly archetypeWeights = signal(new Map<TileType, number>());
 
   protected readonly rows = signal(5);
   protected readonly cols = signal(5);
@@ -157,6 +171,11 @@ export class App {
       .sort((a, b) => b.count - a.count || a.tile.id - b.tile.id);
   });
 
+  /** Sum of {@link tileUsage} counts; equals filled cells when WFC succeeded. */
+  protected readonly tileUsageTotalCount = computed(() =>
+    this.tileUsage().reduce((sum, e) => sum + e.count, 0),
+  );
+
   regenerate(): void {
     this.result.set(this.runGenerator());
   }
@@ -175,6 +194,7 @@ export class App {
   selectLibrary(id: string): void {
     this.libraryId.set(id);
     this.selectedArchetypes.set(new Set(this.palette().map(v => v.type)));
+    this.archetypeWeights.set(new Map());
     this.regenerate();
   }
 
@@ -191,13 +211,43 @@ export class App {
     return this.selectedArchetypes().has(type);
   }
 
+  /** Shown in the weight `<input>` for one archetype picker row. */
+  protected displayedArchetypeWeight(entry: ArchetypeEntry): number {
+    const over = this.archetypeWeights().get(entry.type);
+    if (over === undefined) return entry.tile.weight;
+    return clampArchetypeWeight(over);
+  }
+
+  protected setArchetypeWeight(
+    type: TileType,
+    raw: string | number | null | undefined,
+    paletteDefault: number,
+  ): void {
+    const fallback = clampArchetypeWeight(paletteDefault);
+    let n: number;
+    if (typeof raw === 'number') n = raw;
+    else if (raw === null || raw === undefined || raw === '') n = fallback;
+    else n = Number(String(raw).trim());
+    const next = clampArchetypeWeight(Number.isFinite(n) ? n : fallback);
+    const current = new Map(this.archetypeWeights());
+    current.set(type, next);
+    this.archetypeWeights.set(current);
+  }
+
   private runGenerator(): WfcResult {
     const selected = this.selectedArchetypes();
-    const palette = this.palette().filter(v => selected.has(v.type));
-    if (palette.length === 0) {
+    const weights = this.archetypeWeights();
+    const weightedPalette = this.palette()
+      .filter(v => selected.has(v.type))
+      .map(v => {
+        const over = weights.get(v.type);
+        const base = over !== undefined ? over : v.weight;
+        return { ...v, weight: clampArchetypeWeight(base) };
+      });
+    if (weightedPalette.length === 0) {
       return { success: false, attempts: 0, grid: [] };
     }
-    return generate(palette, {
+    return generate(weightedPalette, {
       rows: this.rows(),
       cols: this.cols(),
       seed: this.useSeed() ? this.seed() : undefined,
