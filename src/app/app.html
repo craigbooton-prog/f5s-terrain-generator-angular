@@ -60,6 +60,15 @@
     <label class="checkbox">
       <input
         type="checkbox"
+        [ngModel]="onlyFiniteInventory()"
+        (ngModelChange)="onlyFiniteInventory.set($event)"
+      />
+      <span>Finite inventory only</span>
+    </label>
+
+    <label class="checkbox">
+      <input
+        type="checkbox"
         [ngModel]="showGridLines()"
         (ngModelChange)="showGridLines.set($event)"
       />
@@ -163,6 +172,7 @@
                 [showGridLines]="false"
                 [showCellLines]="false"
                 [flat]="true"
+                [finiteInventoryTypes]="finiteInventoryArchetypes()"
               />
               <span class="label">{{ entry.label }}</span>
               <div class="picker-controls" (click)="$event.stopPropagation()">
@@ -213,6 +223,7 @@
         [tilePixels]="tilePixels()"
         [showGridLines]="showGridLines()"
         [showCellLines]="showCellLines()"
+        [finiteInventoryTypes]="finiteInventoryArchetypes()"
       />
     } @else {
       <div class="error">
@@ -264,6 +275,7 @@
                   [showGridLines]="false"
                   [showCellLines]="false"
                   [flat]="true"
+                  [finiteInventoryTypes]="finiteInventoryArchetypes()"
                 />
                 <span class="label">{{ entry.label }}</span>
                 <span class="count">×{{ entry.count }}</span>

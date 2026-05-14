@@ -228,6 +228,58 @@ describe('wfc.generate', () => {
       expect(ok).toBe(true);
       expect(cornerCells).toBeLessThanOrEqual(3);
     });
+
+    it('does not fail preflight for partial caps when onlyFiniteInventory is false', () => {
+      const palette = buildDefaultTileSet();
+      const r = generate(palette, {
+        rows: 6,
+        cols: 6,
+        seed: 1,
+        inventoryCaps: new Map<TileType, number>([[TileType.Corner, 10]]),
+        onlyFiniteInventory: false,
+      });
+      expect(r.attempts).toBeGreaterThan(0);
+    });
+
+    describe('onlyFiniteInventory', () => {
+      it('fails immediately when inventoryCaps is omitted', () => {
+        const palette = buildDefaultTileSet();
+        const r = generate(palette, {
+          rows: 4,
+          cols: 4,
+          seed: 1,
+          onlyFiniteInventory: true,
+        });
+        expect(r.success).toBe(false);
+        expect(r.attempts).toBe(0);
+      });
+
+      it('fails immediately when inventoryCaps is empty', () => {
+        const palette = buildDefaultTileSet();
+        const r = generate(palette, {
+          rows: 4,
+          cols: 4,
+          seed: 1,
+          inventoryCaps: new Map<TileType, number>(),
+          onlyFiniteInventory: true,
+        });
+        expect(r.success).toBe(false);
+        expect(r.attempts).toBe(0);
+      });
+
+      it('fails immediately when summed caps for keyed palette types fill less than the grid', () => {
+        const palette = buildDefaultTileSet();
+        const r = generate(palette, {
+          rows: 6,
+          cols: 6,
+          inventoryCaps: new Map<TileType, number>([[TileType.Corner, 10]]),
+          onlyFiniteInventory: true,
+          seed: 1,
+        });
+        expect(r.success).toBe(false);
+        expect(r.attempts).toBe(0);
+      });
+    });
   });
 });
 

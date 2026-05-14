@@ -79,6 +79,11 @@
   opacity: 0.4;
 }
 
+.finite-inventory-overlay {
+  fill: rgba(251, 191, 36, 0.38);
+  pointer-events: none;
+}
+
 .gridlines line {
   // Bright off-white lines stay readable on both the dark road and the green
   // grass. `non-scaling-stroke` keeps them at 1.5 device-px regardless of the

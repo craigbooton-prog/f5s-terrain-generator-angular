@@ -17,6 +17,20 @@
     />
   }
 
+  @if (finiteInventoryOverlays().length > 0) {
+    <g class="finite-inventory-overlays">
+      @for (o of finiteInventoryOverlays(); track o.key) {
+        <rect
+          class="finite-inventory-overlay"
+          [attr.x]="o.x"
+          [attr.y]="o.y"
+          [attr.width]="tilePixels()"
+          [attr.height]="tilePixels()"
+        />
+      }
+    </g>
+  }
+
   @if (showCellLines()) {
     <g class="celllines">
       @for (l of cellLines(); track l.key) {

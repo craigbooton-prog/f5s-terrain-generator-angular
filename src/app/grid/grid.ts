@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { TILE_SIZE, TileVariant, cellTerrain } from '../wfc/tile';
+import { TILE_SIZE, TileType, TileVariant, cellTerrain } from '../wfc/tile';
 
 interface CellPlacement {
   /** Pixel-space x of the cell's top-left corner (in the SVG coordinate system). */
@@ -30,6 +30,8 @@ export class GridComponent {
    * tile-usage panel) where the chrome would dominate the tile itself.
    */
   readonly flat = input<boolean>(false);
+  /** When set, whole tiles whose archetype (`TileType`) is in this set get a tinted overlay. */
+  readonly finiteInventoryTypes = input<ReadonlySet<TileType> | undefined>(undefined);
 
   protected readonly cols = computed(() => this.grid()[0]?.length ?? 0);
   protected readonly rows = computed(() => this.grid().length);
@@ -81,6 +83,25 @@ export class GridComponent {
 
     return placements;
   });
+
+  /** One rectangle per collapsed tile slot that uses a capped-inventory archetype. */
+  protected readonly finiteInventoryOverlays = computed(
+    (): readonly { readonly x: number; readonly y: number; readonly key: string }[] => {
+      const types = this.finiteInventoryTypes();
+      if (!types || types.size === 0) return [];
+      const grid = this.grid();
+      const tilePx = this.tilePixels();
+      const out: { readonly x: number; readonly y: number; readonly key: string }[] = [];
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+          const tile = grid[r][c];
+          if (!tile || !types.has(tile.type)) continue;
+          out.push({ x: c * tilePx, y: r * tilePx, key: `fin-${r}-${c}` });
+        }
+      }
+      return out;
+    },
+  );
 
   /**
    * Lines that mark the tile-scale grid (one line per row/column boundary,

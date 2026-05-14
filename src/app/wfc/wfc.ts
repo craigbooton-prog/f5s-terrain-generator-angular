@@ -39,6 +39,12 @@ export interface WfcOptions {
    * from unconstrained cells alongside propagation.
    */
   readonly inventoryCaps?: ReadonlyMap<TileType, number>;
+  /**
+   * When true, archetypes omitted from {@link inventoryCaps} cannot be placed
+   * (treat absent entries as forbidden, not unlimited). Requires a non-empty
+   * caps map whose totals for capped palette types suffice to fill the grid.
+   */
+  readonly onlyFiniteInventory?: boolean;
 }
 
 export interface WfcResult {
@@ -124,8 +130,9 @@ export function generate(
   const rng = makeRng(options.seed);
   const compat = buildCompatibility(palette);
   const capMap = options.inventoryCaps;
+  const onlyFiniteInventory = options.onlyFiniteInventory ?? false;
 
-  if (inventoryInsufficientForGrid(palette, capMap, rows, cols)) {
+  if (inventoryInsufficientForGrid(palette, capMap, rows, cols, onlyFiniteInventory)) {
     return {
       success: false,
       attempts: 0,
@@ -138,6 +145,17 @@ export function generate(
 
     if (sealedBoundary) {
       applyBoundaryConstraints(cells, palette, rows, cols, sealedEdgeTerrain);
+    }
+
+    if (onlyFiniteInventory && capMap) {
+      const stripUncapped = stripUncappedArchetypes(cells, palette, rows, cols, capMap);
+      if (!stripUncapped.ok) continue;
+      if (
+        stripUncapped.changed.length > 0 &&
+        !propagateMulti(cells, compat, rows, cols, stripUncapped.changed)
+      ) {
+        continue;
+      }
     }
 
     const remaining = cloneInventoryRemaining(capMap);
@@ -167,24 +185,65 @@ function cloneInventoryRemaining(caps?: ReadonlyMap<TileType, number>): Map<Tile
 }
 
 /**
- * If every archetype appearing in {@link palette} has a finite cap, require
- * the sum of those caps ≥ grid cells — otherwise synthesis is impossible.
+ * Preflight feasibility for inventory-backed generation.
+ *
+ * With {@link WfcOptions.onlyFiniteInventory}: non-empty caps are required,
+ * only archetypes keyed in caps may appear, so the summed caps among palette
+ * types that have entries must reach {@link WfcOptions.rows} × cols.
+ *
+ * Otherwise: if every palette archetype has a cap entry, require the combined
+ * caps ≥ grid cells.
  */
 function inventoryInsufficientForGrid(
   palette: readonly TileVariant[],
   caps: ReadonlyMap<TileType, number> | undefined,
   rows: number,
   cols: number,
+  onlyFiniteInventory: boolean,
 ): boolean {
-  if (!caps || caps.size === 0) return false;
+  const cellsNeeded = rows * cols;
   const typesInPalette = new Set(palette.map(v => v.type));
+
+  if (onlyFiniteInventory) {
+    if (!caps || caps.size === 0) return true;
+    let cappedSumInPalette = 0;
+    for (const t of typesInPalette) {
+      if (caps.has(t)) cappedSumInPalette += caps.get(t) ?? 0;
+    }
+    return cappedSumInPalette < cellsNeeded;
+  }
+
+  if (!caps || caps.size === 0) return false;
   const allFinite = [...typesInPalette].every(t => caps.has(t));
   if (!allFinite) return false;
   let sum = 0;
   for (const t of typesInPalette) {
     sum += caps.get(t) ?? 0;
   }
-  return sum < rows * cols;
+  return sum < cellsNeeded;
+}
+
+/** Removes palette indices whose archetype lacks an inventory cap entry. */
+function stripUncappedArchetypes(
+  cells: Set<number>[][],
+  palette: readonly TileVariant[],
+  rows: number,
+  cols: number,
+  caps: ReadonlyMap<TileType, number>,
+): { readonly ok: true; readonly changed: { r: number; c: number }[] } | { readonly ok: false } {
+  const changed: { r: number; c: number }[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = cells[r][c];
+      const before = cell.size;
+      for (const id of [...cell]) {
+        if (!caps.has(palette[id].type)) cell.delete(id);
+      }
+      if (cell.size === 0) return { ok: false };
+      if (cell.size < before) changed.push({ r, c });
+    }
+  }
+  return { ok: true, changed };
 }
 
 function makeFreshGrid(rows: number, cols: number, paletteSize: number): Set<number>[][] {

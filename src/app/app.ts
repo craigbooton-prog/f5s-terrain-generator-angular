@@ -141,10 +141,20 @@ export class App {
    */
   protected readonly archetypeInventoryCaps = signal(new Map<TileType, number>());
 
+  /** Archetypes with an explicit **Available** value (shown as tint on grids). */
+  protected readonly finiteInventoryArchetypes = computed(
+    (): ReadonlySet<TileType> => new Set(this.archetypeInventoryCaps().keys()),
+  );
+
   protected readonly rows = signal(5);
   protected readonly cols = signal(5);
   protected readonly tilePixels = signal(96);
   protected readonly sealedBoundary = signal(false);
+  /**
+   * When true, archetypes without an Available count cannot be placed; summed
+   * Available across selected archetypes must fill rows × cols.
+   */
+  protected readonly onlyFiniteInventory = signal(false);
   protected readonly useSeed = signal(true);
   protected readonly seed = signal(42);
   protected readonly showGridLines = signal(true);
@@ -314,6 +324,7 @@ export class App {
       sealedBoundary: this.sealedBoundary(),
       sealedEdgeTerrain: this.library().sealedEdgeTerrain,
       inventoryCaps: inventoryCaps.size > 0 ? inventoryCaps : undefined,
+      onlyFiniteInventory: this.onlyFiniteInventory(),
     });
   }
 }
