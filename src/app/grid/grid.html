@@ -31,6 +31,22 @@
     </g>
   }
 
+  @if (tileTooltipTargets().length > 0) {
+    <g class="tile-tooltip-hits">
+      @for (t of tileTooltipTargets(); track t.key) {
+        <rect
+          class="tile-tooltip-hit"
+          [attr.x]="t.x"
+          [attr.y]="t.y"
+          [attr.width]="tilePixels()"
+          [attr.height]="tilePixels()"
+        >
+          <title>{{ t.label }}</title>
+        </rect>
+      }
+    </g>
+  }
+
   @if (showCellLines()) {
     <g class="celllines">
       @for (l of cellLines(); track l.key) {

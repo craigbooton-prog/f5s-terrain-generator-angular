@@ -1,7 +1,7 @@
 import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GridComponent } from './grid/grid';
-import { TileType, TileVariant } from './wfc/tile';
+import { TileType, TileVariant, tileTypeLabel } from './wfc/tile';
 import { DEFAULT_LIBRARY_ID, TILE_LIBRARIES, findLibrary } from './wfc/libraries';
 import { WfcResult, generate } from './wfc/wfc';
 
@@ -19,51 +19,6 @@ interface ArchetypeEntry {
   readonly tile: TileVariant;
   readonly previewGrid: readonly (TileVariant | null)[][];
   readonly label: string;
-}
-
-function formatType(type: TileType): string {
-  switch (type) {
-    case TileType.TJunction:
-      return 'T-junction';
-    case TileType.PlateC:
-      return 'Plate C';
-    case TileType.PlateCC:
-      return 'Plate CC';
-    case TileType.PlateCD:
-      return 'Plate CD';
-    case TileType.PlateCDRev:
-      return 'Plate CD-rev';
-    case TileType.PlateAdda:
-      return 'Plate adda';
-    case TileType.PlateAV2:
-      return 'Plate A v2';
-    case TileType.PlateB:
-      return 'Plate B';
-    case TileType.PlateDD2:
-      return 'Plate DD-2';
-    case TileType.PlateD2:
-      return 'Plate D-2';
-    case TileType.PlateACRev2:
-      return 'Plate AC-rev-2';
-    case TileType.PlateABA:
-      return 'Plate aba';
-    case TileType.PlateAA:
-      return 'Plate AA';
-    case TileType.PlateAB:
-      return 'Plate AB';
-    case TileType.PlateABRev:
-      return 'Plate AB-rev';
-    case TileType.PlateABV2:
-      return 'Plate AB-v2';
-    case TileType.PlateAC:
-      return 'Plate AC';
-    case TileType.PlateBB:
-      return 'Plate BB';
-    case TileType.PlateSP:
-      return 'Plate SP';
-    default:
-      return type;
-  }
 }
 
 const ARCHETYPE_WEIGHT_MIN = 0.01;
@@ -112,7 +67,7 @@ export class App {
     }
     return [...seen.values()]
       .sort((a, b) => {
-        const cmp = formatType(a.type).localeCompare(formatType(b.type), undefined, {
+        const cmp = tileTypeLabel(a.type).localeCompare(tileTypeLabel(b.type), undefined, {
           numeric: true,
           sensitivity: 'base',
         });
@@ -122,7 +77,7 @@ export class App {
         type: tile.type,
         tile,
         previewGrid: [[tile]] as (TileVariant | null)[][],
-        label: formatType(tile.type),
+        label: tileTypeLabel(tile.type),
       }));
   });
 
@@ -205,7 +160,7 @@ export class App {
         tile,
         count,
         previewGrid: [[tile]] as (TileVariant | null)[][],
-        label: formatType(tile.type),
+        label: tileTypeLabel(tile.type),
       }))
       .sort((a, b) => b.count - a.count || a.tile.id - b.tile.id);
   });

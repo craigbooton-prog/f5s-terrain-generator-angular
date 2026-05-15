@@ -79,6 +79,11 @@
   opacity: 0.4;
 }
 
+.tile-tooltip-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
 .finite-inventory-overlay {
   fill: rgba(251, 191, 36, 0.38);
   pointer-events: none;

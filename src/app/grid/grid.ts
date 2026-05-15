@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { TILE_SIZE, TileType, TileVariant, cellTerrain } from '../wfc/tile';
+import { TILE_SIZE, TileType, TileVariant, cellTerrain, tileTypeLabel } from '../wfc/tile';
 
 interface CellPlacement {
   /** Pixel-space x of the cell's top-left corner (in the SVG coordinate system). */
@@ -32,6 +32,10 @@ export class GridComponent {
   readonly flat = input<boolean>(false);
   /** When set, whole tiles whose archetype (`TileType`) is in this set get a tinted overlay. */
   readonly finiteInventoryTypes = input<ReadonlySet<TileType> | undefined>(undefined);
+  /**
+   * When true (default), each tile slot has a native hover tooltip showing the archetype name.
+   */
+  readonly showTileTooltips = input(true);
 
   protected readonly cols = computed(() => this.grid()[0]?.length ?? 0);
   protected readonly rows = computed(() => this.grid().length);
@@ -97,6 +101,29 @@ export class GridComponent {
           const tile = grid[r][c];
           if (!tile || !types.has(tile.type)) continue;
           out.push({ x: c * tilePx, y: r * tilePx, key: `fin-${r}-${c}` });
+        }
+      }
+      return out;
+    },
+  );
+
+  /** Transparent rects with SVG `<title>` for hover tooltips per tile slot. */
+  protected readonly tileTooltipTargets = computed(
+    (): readonly { readonly x: number; readonly y: number; readonly label: string; readonly key: string }[] => {
+      if (!this.showTileTooltips()) return [];
+      const grid = this.grid();
+      const tilePx = this.tilePixels();
+      const out: { readonly x: number; readonly y: number; readonly label: string; readonly key: string }[] = [];
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+          const tile = grid[r][c];
+          const label = tile ? tileTypeLabel(tile.type) : 'Failed';
+          out.push({
+            x: c * tilePx,
+            y: r * tilePx,
+            label,
+            key: `tip-${r}-${c}`,
+          });
         }
       }
       return out;

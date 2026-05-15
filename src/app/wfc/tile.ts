@@ -139,6 +139,52 @@ export enum TileType {
   PlateSP = 'PlateSP',
 }
 
+/** Human-readable archetype name for labels and tooltips. */
+export function tileTypeLabel(type: TileType): string {
+  switch (type) {
+    case TileType.TJunction:
+      return 'T-junction';
+    case TileType.PlateC:
+      return 'Plate C';
+    case TileType.PlateCC:
+      return 'Plate CC';
+    case TileType.PlateCD:
+      return 'Plate CD';
+    case TileType.PlateCDRev:
+      return 'Plate CD-rev';
+    case TileType.PlateAdda:
+      return 'Plate adda';
+    case TileType.PlateAV2:
+      return 'Plate A v2';
+    case TileType.PlateB:
+      return 'Plate B';
+    case TileType.PlateDD2:
+      return 'Plate DD-2';
+    case TileType.PlateD2:
+      return 'Plate D-2';
+    case TileType.PlateACRev2:
+      return 'Plate AC-rev-2';
+    case TileType.PlateABA:
+      return 'Plate aba';
+    case TileType.PlateAA:
+      return 'Plate AA';
+    case TileType.PlateAB:
+      return 'Plate AB';
+    case TileType.PlateABRev:
+      return 'Plate AB-rev';
+    case TileType.PlateABV2:
+      return 'Plate AB-v2';
+    case TileType.PlateAC:
+      return 'Plate AC';
+    case TileType.PlateBB:
+      return 'Plate BB';
+    case TileType.PlateSP:
+      return 'Plate SP';
+    default:
+      return type;
+  }
+}
+
 export enum Direction {
   North = 0,
   East = 1,
