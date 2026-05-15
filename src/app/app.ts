@@ -101,6 +101,7 @@ export class App {
    * One entry per archetype in the current library, keyed by TileType.
    * Each entry's `tile` is the lowest-id variant of that archetype (the
    * canonical 0° rotation in practice) so the thumbnail is stable.
+   * Entries are listed in display-name order.
    */
   protected readonly archetypes = computed<readonly ArchetypeEntry[]>(() => {
     const palette = this.palette();
@@ -110,7 +111,13 @@ export class App {
       if (!existing || v.id < existing.id) seen.set(v.type, v);
     }
     return [...seen.values()]
-      .sort((a, b) => a.id - b.id)
+      .sort((a, b) => {
+        const cmp = formatType(a.type).localeCompare(formatType(b.type), undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+        return cmp !== 0 ? cmp : a.id - b.id;
+      })
       .map(tile => ({
         type: tile.type,
         tile,
